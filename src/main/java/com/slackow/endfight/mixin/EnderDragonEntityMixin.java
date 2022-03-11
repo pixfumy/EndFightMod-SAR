@@ -36,6 +36,9 @@ public abstract class EnderDragonEntityMixin extends LivingEntity {
     @Shadow public double field_3751;
     @Shadow public double field_3752;
     private int ticksSincePickedTarget = 0;
+    private boolean lastDamageBed;
+    int setNewTargetCounter = 0; // increment this every time you call setNewTarget
+    int lastSetNewTargetCount = 0;
 
     public EnderDragonEntityMixin(World world) {
         super(world);
@@ -55,8 +58,6 @@ public abstract class EnderDragonEntityMixin extends LivingEntity {
         }
     }
 
-    int setNewTargetCounter = 0; // increment this every time you call setNewTarget
-    int lastSetNewTargetCount = 0;
     private double distanceTo(double targetX, double targetY, double targetZ) {
         double o;
         double p;
@@ -71,7 +72,7 @@ public abstract class EnderDragonEntityMixin extends LivingEntity {
 
     @Inject(method = "tickMovement", at = @At("HEAD"))
     public void onUpdates(CallbackInfo ci) {
-        if (lastSetNewTargetCount != setNewTargetCounter) {
+        if (lastSetNewTargetCount != setNewTargetCounter && this.lastDamageBed) {
             lastSetNewTargetCount = setNewTargetCounter;
             List<PlayerEntity> list = Lists.newArrayList((Iterable)this.world.playerEntities);
             PlayerEntity player = list.get(0);
@@ -86,14 +87,21 @@ public abstract class EnderDragonEntityMixin extends LivingEntity {
             }
             double targetY = ((Entity)(player)).getBoundingBox().minY + v;
             if (this.distanceTo(targetX, targetY, targetZ) >= 10.0 && this.distanceTo(targetX, targetY, targetZ) <= 150.0D) {
-                System.out.println("you got the strat");
                 player.sendMessage(new LiteralText("You got the strat"));
             }
+            this.lastDamageBed = false;
         }
     }
 
     @Inject(method = "method_2906", at = @At("TAIL"))
     public void newTarget(CallbackInfo ci){
         setNewTargetCounter++;
+    }
+
+    @Inject(method = "setAngry", at = @At("TAIL"))
+    public void setLastDamage(EnderDragonPart multipart, DamageSource source, float angry, CallbackInfoReturnable<Boolean> cir) {
+        if (source.isExplosive()) {
+            this.lastDamageBed = true;
+        }
     }
 }
